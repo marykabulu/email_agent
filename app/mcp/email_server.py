@@ -5,7 +5,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from app.email.gmail import get_emails
+from app.email.gmail import get_emails, create_draft
 from mcp.server import MCPServer
 
 
@@ -22,6 +22,26 @@ def read_emails(max_results: int = 10) -> list[dict]:
     """
 
     return get_emails(max_results)
+
+@mcp.tool()
+def create_email_draft(
+    to: str,
+    subject: str,
+    body: str,
+    thread_id: str | None = None
+) -> dict:
+    """
+    Create a draft email in Gmail.
+
+    The email is saved as a draft and is NOT sent.
+    """
+
+    return create_draft(
+        to=to,
+        subject=subject,
+        body=body,
+        thread_id=thread_id
+    )
 
 if __name__ == "__main__":
     mcp.run()

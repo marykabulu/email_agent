@@ -1,16 +1,19 @@
 import os
 import base64
-from typing import Any, cast
+from typing import Any
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from email.mime.text import MIMEText
 
 
-# Only allow the application to read emails for now.
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-
+# Read inbox messages and create drafts.
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.compose",
+]
 
 def get_gmail_service() -> Any:
     """Authenticate with Gmail and return a Gmail API service."""
@@ -24,11 +27,21 @@ def get_gmail_service() -> Any:
             SCOPES
         )
 
-    # If we don't have valid credentials, authenticate.
-    if not credentials or not credentials.valid:
+    has_required_scopes = (
+        credentials is not None
+        and credentials.has_scopes(SCOPES)
+    )
+
+    # A refresh cannot add scopes that were not granted during consent.
+    if not credentials or not credentials.valid or not has_required_scopes:
 
         # Refresh the token if it has expired.
-        if credentials and credentials.expired and credentials.refresh_token:
+        if (
+            credentials
+            and credentials.expired
+            and credentials.refresh_token
+            and has_required_scopes
+        ):
             credentials.refresh(Request())
 
         # Otherwise, start the Google login process.
@@ -58,7 +71,7 @@ def get_emails(max_results: int = 10) -> list[dict[str, str]]:
     """Get unread emails from the Gmail inbox."""
 
     # Connect to Gmail.
-    service = cast(Any, get_gmail_service())
+    service = get_gmail_service()
 
     # Ask Gmail for message IDs.
     results = (
@@ -167,3 +180,42 @@ def extract_body(payload: dict[str, Any]) -> str:
                 )
 
     return ""
+
+
+def create_draft(to, subject, body, thread_id=None):
+    """Create a Gmail draft."""
+
+    service = get_gmail_service()
+
+    message = MIMEText(body)
+
+    message["to"] = to
+    message["subject"] = subject
+
+    encoded_message = base64.urlsafe_b64encode(
+        message.as_bytes()
+    ).decode()
+
+    draft_body = {
+        "message": {
+            "raw": encoded_message
+        }
+    }
+
+    if thread_id:
+        draft_body["message"]["threadId"] = thread_id
+
+    draft = (
+        service.users()
+        .drafts()
+        .create(
+            userId="me",
+            body=draft_body
+        )
+        .execute()
+    )
+
+    return {
+        "draft_id": draft["id"],
+        "message": "Draft created successfully."
+    }

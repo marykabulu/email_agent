@@ -1,5 +1,6 @@
 import os
 import asyncio
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -14,8 +15,10 @@ from agents import (
 from agents.mcp import MCPServerStdio
 
 
-# Load our .env file
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# Load the project .env regardless of the caller's working directory.
+load_dotenv(PROJECT_ROOT / ".env")
 
 
 # Get the Grok API key
@@ -27,7 +30,7 @@ if not xai_api_key:
     )
 
 
-# Create a connection to Grok
+# Connect to the xAI API
 xai_client = AsyncOpenAI(
     api_key=xai_api_key,
     base_url="https://api.x.ai/v1",
@@ -41,31 +44,91 @@ grok_model = OpenAIChatCompletionsModel(
 )
 
 
-# Disable OpenAI tracing because we are using Grok
+# We are using Grok instead of OpenAI
 set_tracing_disabled(True)
 
 
-# Create our AI agent
+# Create the AI agent
 email_agent = Agent(
     name="Email Assistant",
 
     instructions="""
-    You are an email assistant.
+You are an email assistant that manages the user's Gmail inbox.
 
-    Your job is to help the user understand their emails.
+You have access to two tools:
 
-    When reading emails:
+1. read_emails
+   - Use this to retrieve emails from Gmail.
 
-    1. Identify the sender.
-    2. Identify the subject.
-    3. Summarize the important information.
-    4. Decide whether the email appears to require a response.
-    5. Explain why a response is or is not needed.
+2. create_email_draft
+   - Use this to create a draft reply in Gmail.
+   - This tool does NOT send the email.
 
-    Do not send emails.
-    Do not create drafts yet.
-    Do not invent information that is not present in the email.
-    """,
+Your job is to process the user's emails.
+
+IMPORTANT WORKFLOW:
+
+STEP 1:
+Call the read_emails tool to retrieve the requested emails.
+
+STEP 2:
+Examine each email individually.
+
+For each email, determine whether the sender expects a response.
+
+An email normally requires a response when:
+- The sender asks a question.
+- The sender asks the user to provide information.
+- The sender asks the user to perform an action.
+- The sender requests confirmation.
+- The sender is continuing a conversation that reasonably requires a reply.
+
+An email normally does NOT require a response when:
+- It is a newsletter.
+- It is an automated notification.
+- It is purely informational.
+- No response or action is requested.
+
+STEP 3:
+For EVERY email that requires a response, you MUST call
+the create_email_draft tool.
+
+Do NOT merely say that you will create a draft.
+
+Actually call the create_email_draft tool.
+
+When calling create_email_draft:
+
+- to = the sender's email address
+- subject = an appropriate reply subject
+- body = the complete reply you wrote
+- thread_id = the email's thread_id
+
+The reply should:
+- Be professional.
+- Be natural.
+- Directly address the sender's request.
+- Use only information available from the original email.
+- Never invent facts.
+- Never claim that an action has been completed if the user has not provided that information.
+
+STEP 4:
+For emails that do not require a response, DO NOT create a draft.
+
+STEP 5:
+After processing all emails, report:
+- Which emails were reviewed.
+- Which emails require a response.
+- Which drafts were successfully created.
+
+CRITICAL SAFETY RULE:
+
+You are NEVER allowed to send an email.
+
+You may ONLY create Gmail drafts.
+
+The user must review and manually send every draft.
+""",
 
     model=grok_model,
 )
@@ -73,7 +136,7 @@ email_agent = Agent(
 
 async def main():
 
-    # Start our MCP server
+    # Start the MCP server
     async with MCPServerStdio(
         name="Email MCP Server",
 
@@ -82,19 +145,39 @@ async def main():
             "args": [
                 "run",
                 "python",
-                "app/mcp/email_server.py"
+                "app/mcp/email_server.py",
             ],
+            "cwd": str(PROJECT_ROOT),
         },
     ) as server:
 
-        # Give the AI agent access to our MCP server
+        print("\nMCP SERVER CONNECTED")
+        print("Available tools:")
+
+        tools = await server.list_tools()
+
+        for tool in tools:
+            print(f"- {tool.name}")
+
+        # Give the AI agent access to our MCP tools
         email_agent.mcp_servers = [server]
 
-        # Ask the agent to read our emails
+        # Tell the agent what we want it to do
         result = await Runner.run(
             email_agent,
-            "Read my latest 5 emails and summarize them. "
-            "Tell me which ones appear to need a reply."
+            """
+            Read my latest 5 emails.
+
+            For each email:
+
+            1. Determine whether it requires a response.
+            2. If it requires a response, write the reply.
+            3. You MUST call create_email_draft to save that reply
+            as a Gmail draft.
+            4. Do not send the email.
+
+            After processing all emails, tell me which drafts you created.
+            """,
         )
 
         print("\n")
