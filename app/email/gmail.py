@@ -13,6 +13,7 @@ from email.mime.text import MIMEText
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/gmail.send"
 ]
 
 def get_gmail_service() -> Any:
@@ -218,4 +219,38 @@ def create_draft(to, subject, body, thread_id=None):
     return {
         "draft_id": draft["id"],
         "message": "Draft created successfully."
+    }
+
+
+def send_email(to, subject, body):
+    """Send an email using Gmail."""
+
+    service = get_gmail_service()
+
+    message = MIMEText(body)
+
+    message["to"] = to
+    message["subject"] = subject
+
+    encoded_message = base64.urlsafe_b64encode(
+        message.as_bytes()
+    ).decode()
+
+    message_body = {
+        "raw": encoded_message
+    }
+
+    sent_message = (
+        service.users()
+        .messages()
+        .send(
+            userId="me",
+            body=message_body
+        )
+        .execute()
+    )
+
+    return {
+        "message_id": sent_message["id"],
+        "message": "Email sent successfully."
     }

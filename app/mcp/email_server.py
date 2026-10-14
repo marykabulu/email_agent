@@ -5,7 +5,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from app.email.gmail import get_emails, create_draft
+from app.email.gmail import get_emails, create_draft,send_email
 from mcp.server import MCPServer
 
 
@@ -41,6 +41,22 @@ def create_email_draft(
         subject=subject,
         body=body,
         thread_id=thread_id
+    )
+
+@mcp.tool()
+def send_summary_email(
+    to: str,
+    subject: str,
+    body: str
+) -> dict:
+    """
+    Send the email assistant's summary to the user.
+    """
+
+    return send_email(
+        to=to,
+        subject=subject,
+        body=body
     )
 
 if __name__ == "__main__":

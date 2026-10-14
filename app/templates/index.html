@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Zenith Email Assistant</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="app">
+
+        <aside class="sidebar">
+            <h2>✉ Zenith</h2>
+            <p class="sidebar-subtitle">Email Assistant</p>
+
+            <nav>
+                <a class="active" href="/">⌂ Home</a>
+                <a href="#run">▷ Run Agent</a>
+                <a href="#output">▤ Agent Output</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>Smarter inbox.</p>
+                <p>More time for what matters.</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <header class="topbar">
+                <div>
+                    <h1>Zenith Email Assistant</h1>
+                    <p>AI-powered email processing</p>
+                </div>
+
+                <span class="system-status">
+                    <span class="status-dot"></span>
+                    System Ready
+                </span>
+            </header>
+
+            <section class="hero">
+                <div>
+                    <p class="eyebrow">YOUR PERSONAL AI ASSISTANT</p>
+                    <h2>Let AI handle your inbox.</h2>
+                    <p>
+                        Read emails, prepare reply drafts,
+                        and receive a helpful summary.
+                    </p>
+                </div>
+
+                <div class="hero-icon">✉</div>
+            </section>
+
+            <section class="run-card" id="run">
+                <div>
+                    <p class="eyebrow">EMAIL AUTOMATION</p>
+                    <h2>Run Email Agent</h2>
+
+                    <p>
+                        Process your latest emails using
+                        your existing Python AI agent.
+                    </p>
+
+                    <button id="runButton" type="button">
+                        ▶ Run Email Agent
+                    </button>
+
+                    <p id="runStatus" role="status">
+                        Ready to start.
+                    </p>
+                </div>
+
+                <div class="workflow">
+                    <p>✉ &nbsp; Reads emails from Gmail</p>
+                    <p>✧ &nbsp; Analyses emails with AI</p>
+                    <p>▤ &nbsp; Creates reply drafts</p>
+                    <p>✓ &nbsp; Sends your summary</p>
+                </div>
+            </section>
+
+            <section class="stats">
+                <article class="stat-card blue">
+                    <span class="stat-icon">✉</span>
+                    <h3 id="emailsCount">—</h3>
+                    <p>Emails Processed</p>
+                </article>
+
+                <article class="stat-card green">
+                    <span class="stat-icon">↩</span>
+                    <h3 id="repliesCount">—</h3>
+                    <p>Replies Needed</p>
+                </article>
+
+                <article class="stat-card purple">
+                    <span class="stat-icon">▤</span>
+                    <h3 id="draftsCount">—</h3>
+                    <p>Drafts Created</p>
+                </article>
+
+                <article class="stat-card cyan">
+                    <span class="stat-icon">✓</span>
+                    <h3 id="summaryCount">—</h3>
+                    <p>Summary Sent</p>
+                </article>
+            </section>
+
+            <section class="output-card" id="output">
+                <div class="output-heading">
+                    <div>
+                        <h2>Agent Output</h2>
+                        <p>Messages from your Python application</p>
+                    </div>
+
+                    <span id="outputBadge" class="output-badge">
+                        Waiting
+                    </span>
+                </div>
+
+                <pre id="consoleOutput"
+                    aria-live="polite">Your agent output will appear here when you run the application.</pre>
+
+                <p class="output-note">
+                    Individual replies remain drafts for human review.
+                </p>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+
+</html>
